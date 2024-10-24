@@ -1,0 +1,681 @@
+
+
+
+
+create sequence incrementare
+start with 100
+increment by 1
+maxvalue 10000
+nocycle
+nocache;
+
+--drop sequence incrementare;
+
+
+
+
+
+
+
+
+
+
+
+create table JOB_FIRMA(
+id_job number(4),
+denumire varchar2(25),
+salariu_minim number(6),
+salariu_maxim number(6),
+constraint PK_JOB_FIRMA primary key(id_job),
+constraint C1_JOB_FIRMA check(denumire in ('CEO_firma', 'contabil', 'secretar',
+'dispecer', 'sofer', 'lucrator_depozit', 'lucrator_intretinere')),
+constraint C2_JOB_FIRMA check(salariu_minim>0),
+constraint C3_JOB_FIRMA check(salariu_maxim>salariu_minim)
+);
+
+--desc JOB_FIRMA;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'job_firma';
+--drop table JOB_FIRMA;
+
+
+
+create table ANGAJAT(
+id_angajat number(4),
+nume varchar2(25),
+prenume varchar2(25),
+salariu number(6),
+data_angajare date default sysdate,
+id_sef  number(4),
+id_job  number(4),
+constraint PK_ANGAJAT primary key(id_angajat),
+constraint FK1_ANGAJAT foreign key(id_sef) references ANGAJAT(id_angajat),
+constraint FK2_ANGAJAT foreign key(id_job) references JOB_FIRMA(id_job),
+constraint U_ANGAJAT unique(nume, prenume),
+constraint C1_ANGAJAT check(salariu>0),
+constraint C2_ANGAJAT check(id_job is not null)
+);
+
+--desc ANGAJAT;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'angajat';
+--drop table ANGAJAT;
+
+
+
+
+
+
+create table ISTORICUL_JOBURILOR(
+id_angajat number(4),
+data_inceput date,
+data_sfarsit date,
+id_job number(4),
+constraint PK_ISTORICUL_JOBURILOR primary key(id_angajat, data_inceput),
+constraint FK_ISTORICUL_JOBURILOR foreign key(id_angajat) references ANGAJAT(id_angajat)
+);
+
+--desc ISTORICUL_JOBURILOR;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'istoricul_joburilor';
+--drop table ISTORICUL_JOBURILOR;
+
+
+
+
+create table AUTOVEHICUL(
+nr_inmatriculare varchar2(8),
+tip varchar2(8),
+constraint PK_AUTOVEHICUL primary key(nr_inmatriculare),
+constraint C_AUTOVEHICUL check(tip in ('VAN', 'AVIA', 'TIR', 'TIR_rem'))
+);
+
+--desc AUTOVEHICUL;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'autovehicul';
+--drop table AUTOVEHICUL;
+
+
+
+create table TRASEU(
+id_traseu number(4),
+pct_plecare number(4),
+pct_sosire number(4),
+constraint PK_TRASEU primary key(id_traseu)
+);
+
+--desc TRASEU;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'traseu';
+--drop table TRASEU;
+
+
+
+
+
+create table LOCATIE(
+id_locatie number(4),
+tara varchar2(25),
+oras varchar2(25),
+constraint PK_LOCATIE primary key(id_locatie)
+);
+
+--desc LOCATIE;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'locatie';
+--drop table locatie;
+
+
+
+create table CLIENT_FIRMA(
+id_client number(4),
+nume varchar2(25),
+prenume varchar2(25),
+nr_telefon varchar2(10),
+id_locatie number(4),
+constraint PK_CLIENT_FIRMA primary key(id_client),
+constraint FK_CLIENT_FIRMA foreign key(id_locatie) references LOCATIE(id_locatie),
+constraint U_CLIENT_FIRMA  unique(nr_telefon),
+constraint C1_CLIENT_FIRMA  check(nr_telefon is not null),
+constraint C2_CLIENT_FIRMA  check(id_locatie is not null)
+);
+
+--desc CLIENT_FIRMA;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'client_firma';
+--drop table CLIENT_FIRMA;
+
+
+
+
+
+create table DEPOZIT(
+id_depozit number(4),
+capacitate number(4),
+id_locatie number(4),
+constraint PK_DEPOZIT primary key(id_depozit),
+constraint FK_DEPOZIT foreign key(id_locatie) references LOCATIE(id_locatie),
+constraint C1_DEPOZIT check(capacitate>0),
+constraint C2_DEPOZIT check(id_locatie is not null)
+);
+
+--desc DEPOZIT;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'depozit';
+--drop table DEPOZIT;
+
+
+
+
+create table FURNIZOR_MOBILA(
+id_furnizor number(4),
+denumire varchar2(25),
+constraint PK_FURNIZOR_MOBILA primary key(id_furnizor)
+);
+
+--desc FURNIZOR_MOBILA;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'furnizor_mobila';
+--drop table FURNIZOR_MOBILA;
+
+
+
+
+create table PIESA(
+id_piesa number(4),
+denumire varchar2(25),
+constraint PK_PIESA primary key(id_piesa)
+);
+
+--desc PIESA;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'piesa';
+--drop table PIESA;
+
+
+
+
+create table FURNIZEAZA(
+id_piesa number(4),
+id_furnizor number(4),
+data_furnizare date,
+constraint PK_FURNIZEAZA primary key(id_piesa,id_furnizor),
+constraint FK1_FURNIZEAZA foreign key(id_furnizor) references FURNIZOR_MOBILA(id_furnizor),
+constraint FK2_FURNIZEAZA foreign key(id_piesa) references PIESA(id_piesa)
+);
+
+--desc FURNIZEAZA;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'furnizeaza';
+--drop table FURNIZEAZA;
+
+
+
+
+
+create table COMANDA(
+id_comanda number(4),
+id_client number(4),
+id_angajat number(4),
+id_traseu number(4),
+suma number(6),
+data_comanda date default sysdate,
+constraint PK_COMANDA primary key(id_comanda),
+constraint FK1_COMANDA foreign key(id_client) references CLIENT_FIRMA(id_client),
+constraint FK2_COMANDA foreign key(id_angajat) references ANGAJAT(id_angajat),
+constraint FK3_COMANDA foreign key(id_traseu) references TRASEU(id_traseu),
+constraint C1_COMANDA check(id_client is not null),
+constraint C2_COMANDA check(id_angajat is not null),
+constraint C3_COMANDA check(id_traseu is not null),
+constraint C4_COMANDA check(suma>0)
+);
+
+--desc COMANDA;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'comanda';
+--drop table COMANDA;
+
+
+
+
+create table TRANSPORTA(
+id_comanda number(4),
+id_angajat number(4),
+nr_inmatriculare varchar2(8),
+constraint PK_TRANSPORTA primary key(id_comanda, id_angajat, nr_inmatriculare),
+constraint FK1_TRANSPORTA foreign key(id_comanda) references COMANDA(id_comanda),
+constraint FK2_TRANSPORTA foreign key(id_angajat) references ANGAJAT(id_angajat),
+constraint FK3_TRANSPORTA foreign key(nr_inmatriculare) references AUTOVEHICUL(nr_inmatriculare)
+);
+
+--desc TRANSPORTA;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'transporta';
+--drop table COMANDA;
+
+
+
+
+
+create table PACHET(
+id_pachet number(4),
+id_comanda number(4) constraint C4 not null,
+id_depozit number(4) constraint C5 not null,
+id_piesa number(4) constraint C6 not null,
+nr_piese number(4),
+volum number(4),
+greutate number(4),
+constraint PK_PACHET primary key(id_pachet),
+constraint FK1_PACHET foreign key(id_comanda) references COMANDA(id_comanda),
+constraint FK2_PACHET foreign key(id_depozit) references DEPOZIT(id_depozit),
+constraint FK3_PACHET foreign key(id_piesa) references PIESA(id_piesa),
+constraint C1_PACHET check(nr_piese>0),
+constraint C2_PACHET check(volum>0),
+constraint C3_PACHET check(greutate>0)
+);
+
+--desc PACHET;
+--SELECT constraint_name, constraint_type, table_name
+--FROM     user_constraints
+--WHERE  lower(table_name) = 'pachet';
+--drop table PACHET;
+
+--commit;
+--savepoint aici;
+--rollback to aici;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+insert into JOB_FIRMA values(incrementare.nextval, 'lucrator_intretinere', 1000+incrementare.nextval*10+(incrementare.nextval-100)*210, 1000+incrementare.nextval*15+(incrementare.nextval-100)*210);
+insert into JOB_FIRMA values(incrementare.nextval, 'lucrator_depozit', 1000+incrementare.nextval*10+(incrementare.nextval-100)*210, 1000+incrementare.nextval*15+(incrementare.nextval-100)*210);
+insert into JOB_FIRMA values(incrementare.nextval, 'sofer', 1000+incrementare.nextval*10+(incrementare.nextval-100)*210, 1000+incrementare.nextval*15+(incrementare.nextval-100)*210);
+insert into JOB_FIRMA values(incrementare.nextval, 'dispecer', 1000+incrementare.nextval*10+(incrementare.nextval-100)*210, 1000+incrementare.nextval*15+(incrementare.nextval-100)*210);
+insert into JOB_FIRMA values(incrementare.nextval, 'secretar', 1000+incrementare.nextval*10+(incrementare.nextval-100)*210, 1000+incrementare.nextval*15+(incrementare.nextval-100)*210);
+insert into JOB_FIRMA values(incrementare.nextval, 'contabil', 1000+incrementare.nextval*10+(incrementare.nextval-100)*210, 1000+incrementare.nextval*15+(incrementare.nextval-100)*210);
+insert into JOB_FIRMA values(incrementare.nextval, 'CEO_firma', 1000+incrementare.nextval*10+(incrementare.nextval-100)*210, 1000+incrementare.nextval*15+(incrementare.nextval-100)*210);
+
+--select*
+--from JOB_FIRMA;
+
+
+
+
+
+
+
+insert into ANGAJAT values(incrementare.nextval+4, 'Butculescu', 'Catalin', 3500, '02-Feb-10', null, 106);
+insert into ANGAJAT values(incrementare.nextval+4, 'Deaconu', 'Catalin', 3200, '02-Feb-12', 111, 105);
+insert into ANGAJAT values(incrementare.nextval+4, 'Stanciu', 'Silviana', 3000, '02-Feb-12', 111, 104);
+
+insert into ANGAJAT values(incrementare.nextval+4, 'Paraschiv', 'Razvan', 2900, '01-Mar-12', 111, 103);
+insert into ANGAJAT values(incrementare.nextval+4, 'Velcea', 'Ionut', 2800, '10-Mar-12', 114, 103);
+insert into ANGAJAT values(incrementare.nextval+4, 'Bilous', 'Vlad', 2800, '10-Mar-12', 114, 103);
+
+insert into ANGAJAT values(incrementare.nextval+4, 'Telu', 'Andrei', 2700, '01-Mar-12', 111, 102);
+insert into ANGAJAT values(incrementare.nextval+4, 'Vanocea', 'Sebi', 2700, '12-Apr-12', 117, 102);
+insert into ANGAJAT values(incrementare.nextval+4, 'Gheorghe', 'Andrei', 2700, '12-Apr-12', 117, 102);
+insert into ANGAJAT values(incrementare.nextval+4, 'Stan', 'Antonio', 2500, '20-May-13', 117, 102);
+
+insert into ANGAJAT values(incrementare.nextval+4, 'Epingeac', 'Robert', 2400, '15-May-12', 111, 101);
+insert into ANGAJAT values(incrementare.nextval+4, 'Lazar', 'Dan', 2300, '16-Sep-13', 121, 101);
+insert into ANGAJAT values(incrementare.nextval+4, 'Filip', 'Mirel', 2300, '16-May-12', 121, 101);
+insert into ANGAJAT values(incrementare.nextval+4, 'Zaharia', 'Stefan', 2300, '16-May-12', 121, 101);
+insert into ANGAJAT values(incrementare.nextval+4, 'Nita', 'David', 2300, '16-May-12', 121, 101);
+insert into ANGAJAT values(incrementare.nextval+4, 'Stancutu', 'Octavian', 2300, '16-May-12', 121, 101);
+
+insert into ANGAJAT values(incrementare.nextval+4, 'Suta', 'Maria', 2100, '20-May-12', 111, 100);
+insert into ANGAJAT values(incrementare.nextval+4, 'Vanatoru', 'Izabela', 2100, '20-May-12', 111, 100);
+
+--rollback;
+
+--select*
+--from ANGAJAT;
+
+--select incrementare.nextval
+--from dual;
+
+
+
+
+insert into ISTORICUL_JOBURILOR values(111,'02-Feb-10', null, 106);
+insert into ISTORICUL_JOBURILOR values(112,'02-Feb-12', null, 105);
+insert into ISTORICUL_JOBURILOR values(113,'02-Feb-12', null, 104);
+
+insert into ISTORICUL_JOBURILOR values(114,'01-Mar-12', null, 103);
+insert into ISTORICUL_JOBURILOR values(115,'10-Mar-12', null, 103);
+insert into ISTORICUL_JOBURILOR values(116,'10-Mar-12', null, 103);
+
+insert into ISTORICUL_JOBURILOR values(117,'01-Mar-12', null, 102);
+insert into ISTORICUL_JOBURILOR values(118,'12-Apr-12', null, 102);
+insert into ISTORICUL_JOBURILOR values(119,'12-Apr-12', null, 102);
+insert into ISTORICUL_JOBURILOR values(120,'20-May-13','01-Mar-15', 103);
+insert into ISTORICUL_JOBURILOR values(120,'02-Mar-15',null, 102);
+
+insert into ISTORICUL_JOBURILOR values(121,'15-May-12', null, 101);
+insert into ISTORICUL_JOBURILOR values(122,'16-Sep-13', '02-Dec-13', 100);
+insert into ISTORICUL_JOBURILOR values(122,'04-Dec-13', null, 101);
+insert into ISTORICUL_JOBURILOR values(123,'16-May-12', null, 101);
+insert into ISTORICUL_JOBURILOR values(124,'16-May-12', null, 101);
+insert into ISTORICUL_JOBURILOR values(125,'16-May-12', null, 101);
+insert into ISTORICUL_JOBURILOR values(126,'16-May-12', null, 101);
+
+insert into ISTORICUL_JOBURILOR values(127,'20-May-12', null, 100);
+insert into ISTORICUL_JOBURILOR values(128,'20-May-12', null, 100);
+
+--select*
+--from ISTORICUL_JOBURILOR;
+
+
+
+insert into AUTOVEHICUL values ('AG01CTM','VAN');
+insert into AUTOVEHICUL values ('AG02CTM','VAN');
+insert into AUTOVEHICUL values ('AG03CTM','AVIA');
+insert into AUTOVEHICUL values ('AG04CTM','TIR');
+insert into AUTOVEHICUL values ('AG05CTM','TIR_rem');
+
+--select*
+--from AUTOVEHICUL;
+
+
+
+
+
+insert into TRASEU values (200, 300, 400);
+insert into TRASEU values (201, 300, 401);
+insert into TRASEU values (202, 300, 402);
+insert into TRASEU values (203, 301, 400);
+insert into TRASEU values (204, 301, 403);
+insert into TRASEU values (205, 301, 404);
+insert into TRASEU values (206, 301, 402);
+insert into TRASEU values (207, 302, 405);
+insert into TRASEU values (208, 302, 406);
+insert into TRASEU values (209, 302, 404);
+insert into TRASEU values (210, 304, 407);
+
+insert into TRASEU values (211, 305, 410);
+
+insert into TRASEU values (212, 301, 409);
+
+--select*
+--from TRASEU;
+
+
+
+
+insert into LOCATIE values(300, 'Romania', 'Topoloveni');
+insert into LOCATIE values(301, 'Romania', 'Pitesti');
+insert into LOCATIE values(302, 'Romania', 'Gaesti');
+insert into LOCATIE values(303, 'Romania', 'Mioveni');
+insert into LOCATIE values(304, 'Romania', 'Titu');
+insert into LOCATIE values(305, 'Romania', 'Braila');--depozit iesit din uz
+
+insert into LOCATIE values(400, 'Romania', 'Stefanesti');
+insert into LOCATIE values(401, 'Romania', 'Calinesti');
+insert into LOCATIE values(402, 'Romania', 'Costesti');
+insert into LOCATIE values(403, 'Romania', 'Campulung');
+insert into LOCATIE values(404, 'Romania', 'Bradu');
+insert into LOCATIE values(405, 'Romania', 'Targoviste');
+insert into LOCATIE values(406, 'Romania', 'Matasaru');
+insert into LOCATIE values(407, 'Romania', 'Brasov');
+insert into LOCATIE values(408, 'Romania', 'Sibiu');--!
+insert into LOCATIE values(409, 'Romania', 'Arad');
+insert into LOCATIE values(410, 'Romania', 'Constanta');--livrare de la un depozit scos din uz
+
+--select*
+--from LOCATIE;
+
+
+
+
+insert into CLIENT_FIRMA values(500, 'Popescu', 'Andrei', '0712444567', 400);
+insert into CLIENT_FIRMA values(501, 'Ionescu', 'Carmen', '0713464588', 401);
+insert into CLIENT_FIRMA values(502, 'Radu', 'Marin', '0725767321', 402);
+insert into CLIENT_FIRMA values(503, 'Dumitrescu', 'Cristina', '0734225789', 403);
+insert into CLIENT_FIRMA values(504, 'Vasile', 'Alexandru', '0747889022', 404);
+insert into CLIENT_FIRMA values(505, 'Marin', 'Alexandru', '0756442331', 405);
+insert into CLIENT_FIRMA values(506, 'Georgescu', 'Alexandru', '0763188256', 406);
+insert into CLIENT_FIRMA values(507, 'Popescu', 'Ana', '0778991333', 407);
+insert into CLIENT_FIRMA values(508, 'Ene', 'Florin', '0788245670', 409);
+insert into CLIENT_FIRMA values(509, 'Avram', 'Tiberiu', '0798245670', 409);
+insert into CLIENT_FIRMA values(510, 'Chiriac', 'Marius', '0799245670', 400);
+insert into CLIENT_FIRMA values(511, 'Gabor', 'Ovidiu', '0759245670', 402);
+insert into CLIENT_FIRMA values(512, 'Popescu', 'Miron', '0769245470', 404);
+
+--select*
+--from CLIENT_FIRMA;
+
+
+
+
+
+insert into DEPOZIT values(600,5000,300);
+insert into DEPOZIT values(601,6000,301);
+insert into DEPOZIT values(602,7500,302);
+insert into DEPOZIT values(603,5000,303);
+insert into DEPOZIT values(604,4700,304);
+
+--select*
+--from DEPOZIT;
+
+
+--commit;
+
+
+
+
+insert into FURNIZOR_MOBILA values(700, 'Simex');
+insert into FURNIZOR_MOBILA values(701, 'Aramis');
+insert into FURNIZOR_MOBILA values(702, 'IKEA');
+insert into FURNIZOR_MOBILA values(703, 'JYSK');
+insert into FURNIZOR_MOBILA values(704, 'Dedeman');
+
+--select*
+--from FURNIZOR_MOBILA;
+
+
+
+--scaun, canapea, pat, fotoliu, masa, noptiera, birou, dulap, etajera
+
+insert into PIESA values (800, 'scaun_a2');
+insert into PIESA values (801, 'scaun_b2');
+insert into PIESA values (802, 'canapea_a2');--
+insert into PIESA values (803, 'canapea_t6');
+insert into PIESA values (804, 'pat_s42');--
+insert into PIESA values (805, 'pat_b15');
+insert into PIESA values (806, 'pat_a2');
+insert into PIESA values (807, 'pat_b2');
+insert into PIESA values (808, 'canapea_x4');
+insert into PIESA values (809, 'fotoliu_b53');
+insert into PIESA values (810, 'fotoliu_c4');
+insert into PIESA values (811, 'masa_d6');
+insert into PIESA values (812, 'masa_ac3');----
+insert into PIESA values (813, 'noptiera_m7');
+insert into PIESA values (814, 'birou_a2');
+insert into PIESA values (815, 'dulap_a2');
+insert into PIESA values (816, 'etajera_b2');
+
+--select*
+--from PIESA;
+
+
+
+
+insert into FURNIZEAZA values(800, 700, '01-May-2010');
+insert into FURNIZEAZA values(800, 704, '11-Jan-2011');
+insert into FURNIZEAZA values(801, 700, '10-May-2010');
+insert into FURNIZEAZA values(802, 701, '15-Jun-16');--
+insert into FURNIZEAZA values(803, 701, '07-Jan-2011');
+insert into FURNIZEAZA values(804, 702, '10-Aug-2017');--
+insert into FURNIZEAZA values(805, 702, '17-Nov-2011');
+insert into FURNIZEAZA values(806, 703, '24-Sep-2011');
+insert into FURNIZEAZA values(807, 700, '22-Aug-2011');
+insert into FURNIZEAZA values(807, 704, '13-Jun-2012');
+insert into FURNIZEAZA values(808, 702, '29-Aug-2011');
+insert into FURNIZEAZA values(809, 703, '05-Oct-2011');
+insert into FURNIZEAZA values(810, 702, '06-Oct-2011');
+insert into FURNIZEAZA values(811, 701, '21-Apr-2012');
+insert into FURNIZEAZA values(812, 701, '09-Mar-2012');
+insert into FURNIZEAZA values(813, 704, '16-Aug-2011');
+insert into FURNIZEAZA values(814, 704, '16-Aug-2011');
+insert into FURNIZEAZA values(814, 700, '18-Aug-2011');
+insert into FURNIZEAZA values(814, 701, '19-Aug-2011');
+insert into FURNIZEAZA values(814, 702, '23-Aug-2011');
+insert into FURNIZEAZA values(814, 703, '23-Aug-2011');
+insert into FURNIZEAZA values(815, 702, '24-Aug-2011');
+insert into FURNIZEAZA values(816, 702, '28-Aug-2011');
+
+
+--select*
+--from FURNIZEAZA;
+--commit;
+
+
+
+
+insert into COMANDA values(900, 500, 114, 200, 1000, '02-Mar-14');
+insert into COMANDA values(901, 500, 116, 203, 1300, '07-Apr-15');
+insert into COMANDA values(902, 501, 114, 201, 1800, '17-Jun-19');
+insert into COMANDA values(903, 501, 115, 201, 2000, '15-Aug-19');
+insert into COMANDA values(904, 502, 114, 202, 1250, '16-May-18');
+insert into COMANDA values(905, 502, 114, 206, 1100, '17-Jun-20');
+insert into COMANDA values(906, 503, 115, 204, 2200, '19-Jun-19');
+insert into COMANDA values(907, 504, 114, 205, 800, '21-Jun-19');
+insert into COMANDA values(908, 504, 115, 209, 1830, '14-Apr-2020');
+insert into COMANDA values(909, 505, 115, 207, 1640, '12-Apr-2020');
+insert into COMANDA values(910, 506, 114, 208, 1538, '10-Jul-2017');
+insert into COMANDA values(911, 507, 115, 210, 2682, '10-Jan-2014');
+insert into COMANDA values(912, 507, 116, 210, 1530, '14-Mar-2015');---
+insert into COMANDA values(913, 507, 115, 210, 1820, '14-Apr-2015');
+insert into COMANDA values(914, 508, 115, 212, 3030, '22-Aug-2020');
+insert into COMANDA values(915, 509, 114, 212, 1430, '13-Feb-2021');
+insert into COMANDA(id_comanda, id_client, id_angajat, id_traseu, suma) values(916, 510, 116, 200, 730);
+insert into COMANDA(id_comanda, id_client, id_angajat, id_traseu, suma) values(917, 510, 115, 200, 870);---
+insert into COMANDA(id_comanda, id_client, id_angajat, id_traseu, suma) values(918, 510, 116, 203, 500);---
+insert into COMANDA values(919, 511, 114, 202, 1400, '17-Feb-2023');
+insert into COMANDA values(920, 512, 115, 205, 1460, '15-Feb-2022');
+
+--select*
+--from COMANDA;
+--commit;
+--delete from COMANDA where id_comanda=919;
+
+
+
+--valori posibile: VAN,  AVIA, TIR, TIR_rem; acestea au niște dimensiuni standard,  respectiv: ( VAN, 13m3, 1.5t),  ( AVIA, 40m3, 3.5t),  ( TIR, 90m3, 23t), ( TIR_rem, 120m3, 30t);
+
+
+
+insert into TRANSPORTA values(900, 117, 'AG01CTM');
+insert into TRANSPORTA values(901, 117, 'AG03CTM');
+insert into TRANSPORTA values(902, 118, 'AG03CTM');
+insert into TRANSPORTA values(903, 119, 'AG04CTM');
+insert into TRANSPORTA values(904, 118, 'AG02CTM');
+insert into TRANSPORTA values(905, 120, 'AG01CTM');
+insert into TRANSPORTA values(906, 118, 'AG04CTM');
+insert into TRANSPORTA values(907, 119, 'AG02CTM');
+insert into TRANSPORTA values(908, 119, 'AG03CTM');
+insert into TRANSPORTA values(909, 120, 'AG03CTM');
+insert into TRANSPORTA values(910, 120, 'AG03CTM');
+insert into TRANSPORTA values(911, 117, 'AG05CTM');
+insert into TRANSPORTA values(913, 118, 'AG03CTM');
+insert into TRANSPORTA values(914, 117, 'AG05CTM');
+insert into TRANSPORTA values(915, 117, 'AG03CTM');
+insert into TRANSPORTA values(916, 119, 'AG01CTM');
+insert into TRANSPORTA values(919, 118, 'AG03CTM');
+insert into TRANSPORTA values(920, 120, 'AG03CTM');
+
+--select*
+--from TRANSPORTA;
+
+
+
+--802, 804
+
+insert into PACHET values(1000, 900, 600, 800, 10, 6, 300);
+insert into PACHET values(1001, 900, 600, 803, 1, 7, 100);
+
+insert into PACHET values(1002, 901, 601, 811, 5, 20, 1600);
+
+insert into PACHET values(1003, 902, 601, 805, 2, 10, 800);
+insert into PACHET values(1004, 902, 600, 809, 5, 15, 800);
+
+insert into PACHET values(1005, 903, 600, 814, 20, 45, 2400);
+
+insert into PACHET values(1006, 904, 602, 816, 4, 10, 200);
+
+insert into PACHET values(1007, 905, 601, 815, 1, 6, 130);
+
+insert into PACHET values(1008, 906, 600, 802, 10, 70, 1000);
+insert into PACHET values(1009, 906, 601, 804, 1, 5, 200);
+
+insert into PACHET values(1010, 907, 601, 807, 1, 6, 230);
+
+insert into PACHET values(1011, 908, 602, 806, 3, 20, 600);
+
+insert into PACHET values(1012, 909, 602, 807, 4, 25, 900);
+
+insert into PACHET values(1013, 910, 604, 801, 26, 20, 100);
+
+insert into PACHET values(1014, 911, 604, 808, 22, 100, 2500);
+
+insert into PACHET values(1015, 912, 600, 810, 2, 5, 80);
+insert into PACHET values(1016, 912, 604, 811, 1, 5, 60);
+
+
+insert into PACHET values(1017, 913, 604, 813, 20, 34, 208);
+
+insert into PACHET values(1018, 914, 600, 806, 6, 50, 650);
+insert into PACHET values(1019, 914, 602, 801, 10, 13, 80);
+insert into PACHET values(1020, 914, 601, 810, 40, 50, 3000);
+
+insert into PACHET values(1021, 915, 601, 804, 4, 14, 430);
+
+insert into PACHET values(1022, 916, 602, 800, 6, 8, 80);
+
+insert into PACHET values(1023, 917, 600, 810, 2, 5, 100);
+
+insert into PACHET values(1024, 918, 601, 816, 2, 4, 60);
+
+insert into PACHET values(1025, 919, 600, 815, 2, 10, 400);
+
+insert into PACHET values(1026, 920, 601, 811, 10, 27, 280);
+
+
+--select*
+--from PACHET;
+--commit;
+
+
+
+
+
+
+
+
+

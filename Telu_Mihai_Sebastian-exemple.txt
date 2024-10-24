@@ -1,0 +1,407 @@
+-------SB12.
+--Formulați în limbaj natural și implementați 5 cereri SQL complexe ce vor utiliza, în
+--ansamblul lor, următoarele elemente:
+--a) subcereri sincronizate în care intervin cel puțin 3 tabele
+--b) subcereri nesincronizate în clauza FROM
+--c) grupări de date, funcții grup, filtrare la nivel de grupuri cu subcereri nesincronizate
+--(în clauza de HAVING) în care intervin cel puțin 3 tabele (in cadrul aceleiași cereri)
+--d) ordonări și utilizarea funcțiilor NVL și DECODE (în cadrul aceleiași cereri)
+--e) utilizarea a cel puțin 2 funcții pe șiruri de caractere, 2 funcții pe date calendaristice,
+--a cel puțin unei expresii CASE
+--f) utilizarea a cel puțin 1 bloc de cerere (clauza WITH)
+--Observație: Într-o cerere se vor regăsi mai multe elemente dintre cele enumerate mai sus, astfel 
+--încât cele 5 cereri să le cuprindă pe toate.
+
+
+
+
+
+
+--1)Să se afiseze id-ul tuturor comenzilor preluate cu cel putin  9 luni inainte de 01.01.2018,
+--de un dispecer care nu este angajat in ultima zi a vreunei luni si livrate,
+--apoi, de un angajat/sofer care a transportat cel putin o comanda mai scumpa de  800 de lei cu un autoturism de tip VAN.
+
+
+select t.id_comanda
+from transporta t, comanda c, angajat a
+where (t.id_comanda=c.id_comanda and c.id_angajat=a.id_angajat)
+and (months_between('01-Jan-2018',c.data_comanda)>=9 and a.data_angajare<LAST_DAY(a.data_angajare))
+and exists
+(
+                select 5
+                from transporta t1, comanda c1, autovehicul atv
+                where (t1.id_comanda=c1.id_comanda and t1.nr_inmatriculare=atv.nr_inmatriculare) and (c1.suma>800 and atv.tip='VAN')
+                and (t1.id_angajat=t.id_angajat)
+);
+--utilizarea unei subcereri sincronizate, care intervine in cel putin 3 tabele;
+--utilizarea a doua functii pe date calendaristice (months_between, LAST_DAY)
+
+
+
+
+
+--2)	Pentru fiecare comanda care contine cel putin un scaun, dar numarul total de scaune este mai mic decât cel maxim (posibil într-o comanda),
+--sa se afiseze id-ul comenzii, media volumelor pachetelor din ea, precum si media greutatilor. Sa se ordoneze rezultatele dupa greutate.
+
+select aux.cod, NVL((avg(p2.volum)),0) Volum, NVL((avg(p2.greutate)),0) Greutate
+from (--aici obtinem comenzile care contin scaune
+    select c.id_comanda cod
+    from comanda c, pachet p, piesa pi
+    where c.id_comanda=p.id_comanda and p.id_piesa=pi.id_piesa and lower(substr(pi.denumire, 1, 5))='scaun'
+    group by c.id_comanda
+    having sum(p.nr_piese)<( --aici obtinem numarul maxim de scaune dintr-o comanda
+            select  max(sum(p1.nr_piese))
+            from comanda c1, pachet p1, piesa pi1
+            where c1.id_comanda=p1.id_comanda and p1.id_piesa=pi1.id_piesa and lower(substr(pi1.denumire, 1, 5))='scaun'
+            group by c1.id_comanda
+    )
+)aux, pachet p2
+where p2.id_comanda=aux.cod
+group by aux.cod
+order by 3;
+--subcerere nesincronizate în clauza FROM; 
+--grupari de date, functii grup (avg, sum, max), filtrare la nivel de grupuri cu subcereri
+--nesincronizate (în clauza de HAVING) în care intervin cel putin 3 tabele (in cadrul aceleiasi cereri);
+--utilizarea a cel putin 2 functii pe siruri de caractere (substr, lower);
+--ordonare de date
+
+
+
+
+
+--3)Sa se afiseze pentru fiecare comanda volumul total al pachetelor din fiecare depozit (se stie ca
+--id-urile depozitelor sunt 600, 601, 602, 603, 604), precum si volumul total al comenzii.
+--Sa se ordoneze rezultatele dupa volumul total al comenzii.
+
+select id_comanda, NVL(SUM(DECODE(id_depozit, 600, volum)),0) Dep600,
+NVL(SUM(DECODE(id_depozit, 601, volum)),0) Dep601, NVL(SUM(DECODE(id_depozit, 602, volum)),0) Dep602,
+NVL(SUM(DECODE(id_depozit, 603, volum)),0) Dep603, NVL(SUM(DECODE(id_depozit, 604, volum)),0) Dep604,
+NVL(SUM(volum),0) Total
+from pachet
+group by id_comanda
+order by 7;
+--ordonare si utilizarea functiilor NVL si DECODE (în cadrul aceleiași cereri);
+--grupare de date.
+
+
+
+
+
+--4) Sa afiseze o distribuire a comenzilor in tipurile de autovehicule corespunzatoare pentru trasportul lor.
+--Evident, distribuirea se va face dupa greutatea si volumul comenzilor. Afisarea va consta in id-ul comenzii,
+--volumul si greutatea acesteia si un sir (de caractere) format din tipurile de autovehicule care pot livra comanda.
+--Aceste tipuri (de care dispune firma), alaturi de dimensiunile lor sunt:
+--( VAN, 13m3, 1.5t),  ( AVIA, 40m3, 3.5t),  ( TIR, 90m3, 23t), ( TIR_rem, 120m3, 30t).
+
+select aux.Comanda, aux.Volum, aux.Greutate,
+        case
+           when (Volum<=13 and Greutate<=1500) then 'VAN, AVIA, TIR, TIR_rem'
+           when (Volum>13 or Greutate>1500) and (Volum<=40 and Greutate<=3500) then 'AVIA, TIR, TIR_rem'
+           when (Volum>40 or Greutate>3500) and (Volum<=90 and Greutate<=23000) then 'TIR, TIR_rem'
+           else 'TIR_rem'
+        end as DISTRIBUIRE_COMANDA
+from (--OBS: nu puteam face direct gruparea in cererea principala, caci in select 
+--apare si coloana derivata din case, dar care nu se gaseste in clauza group by, astfel avem nevoie de subcerere!
+select id_comanda Comanda , sum(NVL(volum,0)) Volum, sum(NVL(greutate,0)) Greutate
+from pachet
+group by id_comanda) aux
+order by 1;
+--utilizarea unei expresii CASE;
+--utilizarea unei subcereri necorelate in clauza from;
+--grupare de date (functii grup etc.).
+
+
+
+
+
+--5) Sa se afiseze codul, numele si prenumele (pe aceeasi coloana) si data 
+--angajarii ale subalternilor subordonati directi lui Catalin Butculescu care au cea mai 
+--mare vechime. 
+
+with subalt as(--aici gasesc subalternii
+select a2.id_angajat cod , a2.nume||' '||a2.prenume nume, a2.data_angajare data_ang
+from angajat a, angajat a2
+where a.id_angajat=a2.id_sef
+and upper(a.nume)='BUTCULESCU' and upper(a.prenume)='CATALIN'
+)
+select cod, nume, data_ang
+from subalt
+where data_ang=
+(select min(data_ang)
+from subalt);
+--utilizarea a cel puțin 1 bloc de cerere (clauza WITH);
+--grupare de date (min);
+--functii pentru siruri de caractere (upper).
+
+
+
+
+
+
+
+
+
+
+
+--commit;
+
+
+
+
+
+--savepoint acum;
+
+
+---------SB13.
+--Implementarea a 3 operații de actualizare și de suprimare a datelor utilizând subcereri
+
+--1)Sa se actualizeze la 2500 lei salariile tuturor soferilor care au efectuat mai putin de 5 transporturi
+--si care au fost angajati dupa toti dispecerii.
+
+update angajat
+set salariu=2500
+where id_angajat in
+(
+        select a.id_angajat
+        from transporta t, angajat a
+        where t.id_angajat=a.id_angajat and a.data_angajare>any(
+        select a2.data_angajare
+        from comanda c, angajat a2
+        where c.id_angajat=a2.id_angajat
+        )
+        group by a.id_angajat
+        having count(*)<5
+);
+--Se actulizeaza 119, 120
+
+
+--2)Sa se stearga (din entitatea LOCATIE) fiecare locatie care nu este
+--a vreunui client sau a vreunui depozit.
+
+delete from locatie
+where id_locatie in
+(
+    select id_locatie
+    from locatie
+    minus
+    (select distinct id_locatie
+    from client_firma
+    union
+    select distinct id_locatie
+    from depozit)
+);
+--functioneaza stergerea, intrucat liniile sterse nu au id_locatie in coloana cheii
+--externe din client_firma sau din depozit;
+--305, 408, 410
+
+
+
+
+--3)Sa se actualizeze capacitatea fiecarui depozit in care a fost depozitat
+--un volum mai mic de 80 m3 (de pachete). Capacitatile acestora 
+--de stocare se vor micsora cu 25%.
+
+update depozit
+set capacitate=capacitate*0.75
+where id_depozit in(
+select id_depozit
+from pachet
+group by id_depozit
+having sum(NVL(volum,0))<80);
+--602
+
+
+
+--select *
+--from angajat;
+--
+--select *
+--from locatie
+--where id_locatie in (305, 408, 410);
+--
+--select *
+--from depozit;
+
+
+--rollback to acum;
+--commit;
+--Eu am dat rollback to acum, de aceea modificarile nu vor fi vizibile!!!
+
+
+
+
+
+
+
+
+
+-------Sb14.. 
+--Crearea unei vizualizări complexe. Dați un exemplu de operație LMD permisă pe 
+--vizualizarea respectivă și un exemplu de operație LMD nepermisă.
+
+
+--Vizualizare complexa cu join intre 2 tabele, care contine
+--id-ul, numele, prenumele, id-ul sefului, id-ul si denumirea
+--job-lui pentru angajatii de pe job-urile 101, 102.
+create or replace view angajat_job_firma as
+(
+select id_angajat, nume, prenume, id_sef, j.id_job, denumire
+from angajat a, job_firma j
+where a.id_job=j.id_job
+and a.id_job in (101, 102)
+);
+
+
+
+--Operatie LMD permisa--select (nu modifica niciun tabel,
+--vizualizarea nu contine grupare ori alt element
+--care sa impiedice LMD):
+select *
+from angajat_job_firma
+where id_sef=
+(
+select id_angajat
+from angajat
+where NVL(id_sef,0)=0
+);
+--Selectam agajatii cu job-ul asociat
+--si care sunt condusi direct de CEO.
+
+
+
+
+--Operatie LMD nepermisa (in majoritatea cazurilor)--insert 
+--(tabelul angajat este key preserved, celalalt nu, iar id_job
+--din tabelul angajat are constrangerea sa nu fie null si
+--este cheie externa):
+
+insert into angajat_job_firma values(130, 'Petrini', 'Victor', 121, 101, 'mecanic');
+--Nu poate insera mecanic in tabelul job_firma, modificandu-l
+
+insert into angajat_job_firma values(130, 'Petrini', 'Victor', 121, 109, 'mecanic');
+--Aceeasi problema. Nu se poate schimba nimic in al doilea tabel.
+
+
+insert into angajat_job_firma values(130, 'Petrini', 'Victor', 121, 109, 'lucrator_depozit');
+--Aceeasi problema. Nu se poate schimba nimic in al doilea tabel. De asemenea,
+--109 nu are vreo referinta in celalalt tabel, fiind insa cheie externa.
+
+insert into angajat_job_firma values(130, 'Petrini', 'Victor', 121, null, 'lucrator_depozit');
+--Nu functioneaza, cheia externa nu este nula, din constrangerile puse.De asemenea,
+--se poate schimba nimic in al doilea tabel.
+
+insert into angajat_job_firma values(130, 'Petrini', 'Victor', 121, 101, 'lucrator_depozit');
+insert into angajat_job_firma(id_angajat, nume, prenume, id_sef, id_job) values(130, 'Petrini', 'Victor', 121, 101);
+--Nu va functiona nici in cazurile de mai sus, caci tot se 'utilizeaza' tabela job_firma.
+insert into angajat_job_firma(id_angajat, nume, prenume, id_sef) values(130, 'Petrini', 'Victor', 121);
+--Ar fi mers asa, daca nu exista constrangerea din angajat de not-null pe id_job.
+
+
+--SELECT * FROM USER_UPDATABLE_COLUMNS
+--WHERE lower(TABLE_NAME) = 'angajat_job_firma' ;
+
+--Un exemplu unde ar fi mers inserarea:
+--create or replace view angajat_job_firma2 as
+--(
+--select id_angajat, nume, prenume, salariu, data_angajare, id_sef, a.id_job, denumire
+--from angajat a, job_firma j
+--where a.id_job=j.id_job
+--and a.id_job in (101, 102)
+--);
+--
+--select *
+--from angajat_job_firma2;
+--
+--insert into angajat_job_firma2(id_angajat, nume, prenume, salariu, data_angajare, id_sef, id_job) values(131, 'Feraru', 'Matei',  2300, '16-MAY-12', 121, 101);
+--delete from angajat
+--where id_angajat=131;
+--commit;
+
+
+
+
+
+
+
+
+
+
+---Sb15.
+--Formulați în limbaj natural și implementați în SQL: o cerere ce utilizează operația outerjoin pe minimum 4 tabele, o cerere ce utilizează operația division și o cerere care 
+--implementează analiza top-n.
+
+
+
+--1)Pentru fiecare comanda data (nu se spune ca si transportata),
+--sa se afiseze id-ul ei, numele clientului,
+--orasul unde se afla clientul, autoturismul cu care a fost transportata
+--si numele angajatului care a transportat-o.
+
+select c.id_comanda, cln.nume, l.oras, t.nr_inmatriculare, a.nume
+from comanda c join client_firma cln on c.id_client=cln.id_client
+               join locatie l on cln.id_locatie=l.id_locatie
+               left outer join transporta t on c.id_comanda=t.id_comanda
+               left outer join angajat a on t.id_angajat=a.id_angajat;
+--Pentru primele doua join-uri nu este nevoie de outer,
+--caci pe cheile externe respective exista constrangerea de
+--not null;
+--Se observa existenta join-lui intre 5 tabele.
+
+                  
+
+--2)Gasiti toti soferii (id-ul lor) care
+--au transportat comenzi cu toate autovehiculele
+--de tip VAN.
+
+select distinct t1.id_angajat
+from transporta t1
+where not exists
+(
+    select a.nr_inmatriculare
+    from autovehicul a
+    where a.tip='VAN'
+    and not exists
+    (
+        select t2.nr_inmatriculare
+        from transporta t2
+        where t2.nr_inmatriculare=a.nr_inmatriculare
+        and t2.id_angajat=t1.id_angajat
+    )
+
+);
+--DIVISION (intre TRANSPORTa si 'AUTOVEHICULELE de tip VAN');
+--Selectez toti soferii pentru care nu nu exista [vreun autoturism
+--de tip VAN care sa nu fi (fost folosit la transporturi 
+--efectuate de catre ei)].
+
+
+
+
+--3)Sa se afiseze numarul de inmatriculare
+--si greutatea totala a comenzilor transportate pentru autovehiculele
+--care au transportat cele mai mari doua cantitati totale de mobila.
+
+select a.nr_inmatriculare, sum(NVL(p.greutate,0))
+from autovehicul a, transporta t, comanda c, pachet p
+where a.nr_inmatriculare=t.nr_inmatriculare and t.id_comanda=c.id_comanda
+and c.id_comanda=p.id_comanda
+group by a.nr_inmatriculare
+having sum(NVL(p.greutate,0)) in 
+(       select S
+        from 
+        (   select sum(NVL(p1.greutate,0)) S
+            from autovehicul a1, transporta t1, comanda c1, pachet p1
+            where a1.nr_inmatriculare=t1.nr_inmatriculare and t1.id_comanda=c1.id_comanda
+            and c1.id_comanda=p1.id_comanda
+            group by a1.nr_inmatriculare
+            order by 1 desc
+        )
+        where rownum < 3
+)
+order by 2;
+--Cerere care implementeaza analiza TOP-N.
+
+
+
+
+--commit;
